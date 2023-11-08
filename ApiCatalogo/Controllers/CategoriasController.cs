@@ -1,5 +1,8 @@
-﻿using APICatalogo.Context;
+﻿using ApiCatalogo.DTOs;
+using APICatalogo.Context;
 using APICatalogo.Models;
+using APICatalogo.Repository;
+using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
@@ -10,18 +13,23 @@ namespace APICatalogo.Controllers
     [ApiController]
     public class CategoriasController : ControllerBase
     {
-        private readonly AppDbContext _context;
-        public CategoriasController(AppDbContext context)
+        private readonly IUnitOfWork _uof;
+        private readonly IMapper _mapper;
+        public CategoriasController(IUnitOfWork context, IMapper mapper)
         {
-            _context = context;
+            _uof = context;
+            _mapper = mapper;
         }
 
         [HttpGet("produtos")]
-        public async Task<ActionResult<IEnumerable<Categoria>>> GetCategoriasProdutos()
+        public ActionResult<IEnumerable<CategoriaDTO>> GetCategoriasProdutos()
         {
             try
             {
-                return await _context.Categorias.Include(p => p.Produtos).ToListAsync();
+                var categoria =  _uof.CategoriaRepository.GetCategoriasProdutos().ToList();
+                var categoriaDto = _mapper.Map<List<CategoriaDTO>>(categoria);
+
+                return categoriaDto;
             }
             catch (Exception)
             {
@@ -31,11 +39,14 @@ namespace APICatalogo.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Categoria>>> Get()
+        public ActionResult<IEnumerable<CategoriaDTO>> Get()
         {
             try
             {
-                return await _context.Categorias.AsNoTracking().ToListAsync();
+                var categoria =  _uof.CategoriaRepository.Get().ToList();
+                var categoriaDto = _mapper.Map<List<CategoriaDTO>>(categoria);
+
+                return categoriaDto;
             }
             catch (Exception)
             {
@@ -46,18 +57,21 @@ namespace APICatalogo.Controllers
         }
 
         [HttpGet("{id:int}", Name = "ObterCategoria")]
-        public ActionResult<Categoria> Get(int id)
+        public ActionResult<CategoriaDTO> Get(int id)
         {
             try
             {
                
-                var categoria = _context.Categorias.FirstOrDefault(p => p.CategoriaId == id);
+                var categoria = _uof.CategoriaRepository.GetById(p => p.CategoriaId == id);
 
                 if (categoria == null)
                 {
                     return NotFound($"Categoria com id= {id} não encontrada...");
                 }
-                return Ok(categoria);
+
+                var categoriaDto = _mapper.Map<CategoriaDTO>(categoria);
+
+                return categoriaDto;
             }
             catch (Exception)
             {
@@ -67,18 +81,21 @@ namespace APICatalogo.Controllers
         }
 
         [HttpPost]
-        public ActionResult Post(Categoria categoria)
+        public ActionResult Post(CategoriaDTO categoriaDto)
         {
             try
             {
+                var categoria = _mapper.Map<Categoria>(categoriaDto);
                 if (categoria is null)
                     return BadRequest("Dados inválidos");
 
-                _context.Categorias.Add(categoria);
-                _context.SaveChanges();
+                _uof.CategoriaRepository.Add(categoria);
+                _uof.Commit();
+
+                var categoriaDTO = _mapper.Map<CategoriaDTO> (categoria);
 
                 return new CreatedAtRouteResult("ObterCategoria",
-                    new { id = categoria.CategoriaId }, categoria);
+                    new { id = categoria.CategoriaId }, categoriaDto);
 
             }
             catch (Exception)
@@ -89,16 +106,19 @@ namespace APICatalogo.Controllers
         }
 
         [HttpPut("{id:int}")]
-        public ActionResult Put(int id, Categoria categoria)
+        public ActionResult Put(int id, CategoriaDTO categoriaDto)
         {
             try
             {
-                if (id != categoria.CategoriaId)
+                if (id != categoriaDto.CategoriaId)
                 {
                     return BadRequest("Dados inválidos");
                 }
-                _context.Entry(categoria).State = EntityState.Modified;
-                _context.SaveChanges();
+
+                var categoria = _mapper.Map<Categoria>(categoriaDto);
+
+                _uof.CategoriaRepository.Update(categoria);
+                _uof.Commit();
                 return Ok(categoria);
             }
             catch (Exception)
@@ -113,15 +133,18 @@ namespace APICatalogo.Controllers
         {
             try
             {
-                var categoria = _context.Categorias.FirstOrDefault(p => p.CategoriaId == id);
+                var categoria = _uof.CategoriaRepository.GetById(c => c.CategoriaId == id);
 
                 if (categoria == null)
                 {
                     return NotFound($"Categoria com id={id} não encontrada...");
                 }
-                _context.Categorias.Remove(categoria);
-                _context.SaveChanges();
-                return Ok(categoria);
+                _uof.CategoriaRepository.Delete(categoria);
+                _uof.Commit();
+
+                var categoriaDto = _mapper.Map<CategoriaDTO>(categoria);
+
+                return Ok(categoriaDto);
             }
             catch (Exception)
             {
