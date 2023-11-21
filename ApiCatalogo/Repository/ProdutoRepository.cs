@@ -12,14 +12,11 @@ namespace APICatalogo.Repository
         {
         }
 
-        public IEnumerable<Produto> GetProdutos(ProdutosParameters produtosParameters)
+        public PagedList<Produto> GetProdutos(ProdutosParameters produtoParameters)
         {
-            return Get()
-            .OrderBy(on => on.Nome)
-            .Skip((produtosParameters.PageNumber - 1) * produtosParameters.PageSize)
-            .Take(produtosParameters.PageSize)
-            .ToList();
-
+            return PagedList<Produto>.ToPagedList(Get().OrderBy(on => on.Nome),
+                produtoParameters.PageNumber,
+                produtoParameters.PageSize);
         }
         public IEnumerable<Produto> GetProdutosPorPreco()
         {
