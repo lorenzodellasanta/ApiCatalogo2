@@ -12,6 +12,7 @@ namespace APICatalogo.Controllers
 {
     [Route("[controller]")]
     [ApiController]
+    //[EnableCors("PermitirApiRequest")] -- Aplica em todos os Metodos!!!
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class CategoriasController : ControllerBase
     {
@@ -41,6 +42,7 @@ namespace APICatalogo.Controllers
         }
 
         [HttpGet]
+        //[EnableCors("PermitirApiRequest")] -- Aplica no Metodo específico !!
         public async Task<ActionResult<IEnumerable<CategoriaDTO>>> Get([FromQuery] CategoriasParameters categoriasParameters)
         {
             {
